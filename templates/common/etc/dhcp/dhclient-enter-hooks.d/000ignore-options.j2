@@ -1,0 +1,16 @@
+{% for o in network_dhcp_ignore_options %}
+unset {{ o | regex_replace('[\-\.]', '_') }}
+{% endfor %}
+
+{% for if in (network_ethernet_interfaces + network_vlan_interfaces) %}
+{%      for family in ['inet', 'inet6'] %}
+{%          if if[family] is defined and __network_uses_DHCP and if[family].options is defined and if[family].options.ignore is defined %}
+if [ "$interface" == "{{ if.device }}" ]
+then
+{%              for o in if[family].options.ignore %}
+    unset {{ o | regex_replace('[\-\.]', '_') }}
+{%              endfor %}
+fi
+{%          endif %}
+{%      endfor %}
+{% endfor %}

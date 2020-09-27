@@ -1,0 +1,11 @@
+#
+# use /etc/network/interfaces.d/ifcfg-${devices} to add devices
+#
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+iface lo inet6 loopback
+
+# Load config files
+source /etc/network/interfaces.d/ifcfg-*

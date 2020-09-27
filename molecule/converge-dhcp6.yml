@@ -1,0 +1,39 @@
+---
+
+- hosts: all
+  name: 'Converge'
+  become: True
+  vars:
+    __converge_network_devices:
+      Debian: 'eth0'
+      OpenBSD: 'em0'
+
+  tasks:
+    - import_role:
+        name: 'ansible-role-network'
+      vars:
+        network_dns_inet_nameservers:
+          - 9.9.9.9
+
+        network_dns_inet6_nameservers:
+          - 2606:4700:4700::1111
+
+        network_ethernet_interfaces:
+          - device: "{{ __converge_network_devices[ansible_facts['os_family']] }}"
+            ignore_errors: True
+
+            inet:
+              type: dhcp
+
+            # SLAAC + DHCPv6
+            inet6:
+              type: auto
+
+              dhcp:
+                enabled: True
+                prefix_delegation: True
+
+              options:
+                send:
+                  - option: dhcp6.client-id
+                    value: XXXXXX

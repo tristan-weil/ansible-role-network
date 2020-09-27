@@ -1,0 +1,28 @@
+---
+
+- name: 'delete device (check file)'
+  stat:
+    path: "/etc/network/interfaces.d/ifcfg-{{ item.device }}"
+  when: item.state | default('present') != 'present'
+  loop: "{{ network_ethernet_interfaces + network_vlan_interfaces }}"
+  register: __network_ethernet_del_result
+
+- name: 'delete device (ifdown)'  # noqa 503
+  shell: |
+    /sbin/ifdown {{ item.item.device }};
+  changed_when: False
+  ignore_errors: "{{ item.item.ignore_errors | default(False) }}"
+  when: >
+    item.stat is defined
+    and item.stat.exists
+  loop: "{{ __network_ethernet_del_result.results }}"
+
+- name: 'delete device (remove file)'
+  file:
+    path: "/etc/network/interfaces.d/ifcfg-{{ item.device }}"
+    state: 'absent'
+  when: item.state | default('present') != 'present'
+  loop: "{{ network_ethernet_interfaces + network_vlan_interfaces }}"
+  notify:
+    - 'network_reload_listener'
+    - 'network_restart_listener'

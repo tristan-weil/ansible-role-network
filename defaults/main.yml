@@ -1,4 +1,19 @@
 ---
 
+network_dns_search: []
+network_dns_inet_nameservers: []
+network_dns_inet6_nameservers: []
+network_dns_options: []
+
+network_dhcp_request_options: "{{ _network_dhcp_default_request_options }}"
+network_dhcp_require_options: "{{ _network_dhcp_default_require_options }}"
+network_dhcp_default_options: "{{ _network_dhcp_default_default_options }}"
+network_dhcp_append_options: "{{ _network_dhcp_default_append_options }}"
+network_dhcp_prepend_options: "{{ _network_dhcp_default_prepend_options }}"
+network_dhcp_supersede_options: "{{ _network_dhcp_default_supersede_options }}"
+network_dhcp_send_options: "{{ _network_dhcp_default_send_options }}"
+network_dhcp_ignore_options: "{{ _network_dhcp_default_ignore_options }}"
+network_dhcp_options_definitions: "{{ _network_dhcp_default_options_definitions }}"
+
 network_ethernet_interfaces: []
 network_vlan_interfaces: []

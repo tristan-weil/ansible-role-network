@@ -1,0 +1,32 @@
+---
+
+- name: 'list packages to install'
+  set_fact:
+    __network_pkgs: >-
+      {% set result = [] -%}
+      {% if __network_uses_ISC | default(False) | bool -%}
+      {%    set dummy = result.append('isc-dhcp-client') -%}
+      {% endif -%}
+      {{ result }}
+
+- include_role:
+    name: 'ansible-role-pkg'
+  vars:
+    pkg_list: "{{ __network_pkgs }}"
+
+- name: 'install the mygate file'
+  template:
+    src: 'OpenBSD/etc/mygate.j2'
+    dest: '/etc/mygate'
+    owner: 'root'
+    group: 'wheel'
+    mode: '0644'
+
+- name: 'enable ipv6 forwarding'
+  sysctl:
+    name: 'net.inet6.ip6.forwarding'
+    value: "{{ _network_translations['ra_options'][item.inet6.ra | default('on')] }}"
+    sysctl_set: True
+    state: 'present'
+    reload: True
+  when: __network_uses_IPV6 | default(False) | bool

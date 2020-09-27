@@ -1,0 +1,54 @@
+---
+
+- name: 'start slaacd daemon'
+  service:
+    name: 'slaacd'
+    enabled: "{{ (network_ethernet_interfaces + network_vlan_interfaces) | json_query(\"[?inet6.type=='auto']\") | length > 0 }}"
+    state: "{{ 'started' if (network_ethernet_interfaces + network_vlan_interfaces) | json_query(\"[?inet6.type=='auto']\") | length > 0 else 'stopped' }}"
+
+# OpenBSD's DHCP
+- block:
+    - name: 'update dhclient.conf'
+      template:
+        src: 'common/etc/dhcp/dhclient.conf.j2'
+        dest: '/etc/dhclient.conf'
+        owner: 'root'
+        group: 'wheel'
+        mode: '0644'
+      notify:
+        - 'network_OpenBSD_restart_handler'
+  when: >
+    __network_uses_DHCP | default(False) | bool
+
+# ISC's DHCP
+- block:
+    - name: 'update dhclient.conf'
+      template:
+        src: 'common/etc/dhcp/dhclient.conf.j2'
+        dest: '/etc/isc-dhclient.conf'
+        owner: 'root'
+        group: 'wheel'
+        mode: '0644'
+      notify:
+        - 'network_OpenBSD_restart_handler'
+
+    - name: 'create a new dhclient-script'
+      copy:
+        src: 'OpenBSD/usr/local/sbin/dhclient-script-t18s-fr'
+        dest: '/usr/local/sbin/dhclient-script-t18s-fr'
+        owner: 'root'
+        group: 'wheel'
+        mode: '0644'
+
+    - name: 'update ignored options hook file'
+      template:
+        src: 'common/etc/dhcp/dhclient-enter-hooks.d/000ignore-options.j2'
+        dest: '/etc/isc-dhclient-hook'
+        owner: 'root'
+        group: 'wheel'
+        mode: '0644'
+      notify:
+        - 'network_OpenBSD_restart_handler'
+
+  when: >
+    __network_uses_ISC | default(False) | bool

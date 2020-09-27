@@ -1,0 +1,100 @@
+{############################################}
+{# GLOBAL                                   #}
+{############################################}
+auto {{ item.device }}
+allow-hotplug {{ item.device }}
+
+{############################################}
+{# INET                                     #}
+{############################################}
+{% if item.inet is defined %}
+iface {{ item.device }} inet {{ item.inet.type }}
+{############################################}
+{# STATIC                                   #}
+{############################################}
+{%      if item.inet.type == 'static' %}
+    address {{ item.inet.address }}/{{ item.inet.netmask | default(item.inet.prefixlen) }}
+{%          for opt in ['gateway'] if item.inet[opt] is defined %}
+    {{ _network_translations[opt] }} {{ item.inet[opt] }}
+{%          endfor %}
+{%          if item.options is defined %}
+{%              for opt in ['hwaddress', 'mtu'] if item.options[opt] is defined %}
+    {{ _network_translations[opt] }} {{ item.options[opt] }}
+{%              endfor %}
+{%          endif %}
+{%          if network_dns_search | length > 0 %}
+    dns-search {{ network_dns_search | default([]) | join(' ') }}
+{%          endif %}
+{%          if network_dns_inet_nameservers | default([]) | length > 0 %}
+    dns-nameservers {{ network_dns_inet_nameservers | join(' ') }}
+{%          endif %}
+{%      endif %}
+{############################################}
+{# DHCP                                     #}
+{############################################}
+{%      if item.inet.type == 'dhcp' %}
+{%          if item.options is defined %}
+{%              for opt in ['hwaddress', 'mtu'] if item.options[opt] is defined %}
+    {{ _network_translations[opt] }} {{ item.options[opt] }}
+{%              endfor %}
+{%          endif %}
+{%      endif %}
+{############################################}
+{# COMMANDS                                 #}
+{############################################}
+{%      for command in item.inet.commands | default([]) %}
+    up {{ command }}
+{%      endfor %}
+{% endif %}
+
+{############################################}
+{# INET6                                     #}
+{############################################}
+{% if item.inet6 is defined %}
+iface {{ item.device }} inet6 {{ _network_translations[item.inet6.type] }}
+{############################################}
+{# STATIC                                   #}
+{############################################}
+{%      if item.inet6.type == 'static' %}
+    address {{ item.inet6.address }}/{{ item.inet6.netmask | default(item.inet6.prefixlen) }}
+{%          for opt in ['gateway'] if item.inet6[opt] is defined %}
+    {{ opt }} {{ item.inet6[opt] }}
+{%          endfor %}
+{%          if item.options is defined %}
+{%              for opt in ['hwaddress', 'mtu'] if item.options[opt] is defined %}
+    {{ _network_translations[opt] }} {{ item.options[opt] }}
+{%              endfor %}
+{%          endif %}
+{%          if network_dns_search | default([]) | length > 0 %}
+    dns-search {{ network_dns_search | join(' ') }}
+{%          endif %}
+{%          if network_dns_inet6_nameservers | default([]) | length > 0 %}
+{%              for ns in network_dns_inet6_nameservers %}
+    dns-nameserver {{ ns }}
+{%              endfor %}
+{%          endif %}
+{%      endif %}
+{############################################}
+{# AUTO                                     #}
+{############################################}
+{%      if item.inet6.type == 'auto' %}
+    privext {{ _network_translations['autoconf_privacy_options'][item.inet6.autoconf.privacy | default("prefer")] }}
+    accept_ra {{ _network_translations['ra_options'][item.inet6.ra | default("on")] }}
+    dhcp {{ "1" if item.inet6.dhcp.enabled | default(False) else "0" }}
+    request_prefix {{ "1" if item.inet6.dhcp.prefix_delegation | default(False) else "0" }}
+{%      endif %}
+{############################################}
+{# DHCP                                     #}
+{############################################}
+{%      if item.inet6.type == 'dhcp' %}
+    autoconf 0
+    accept_ra {{ _network_translations["off"] }}
+    request_prefix {{ "1" if item.inet6.dhcp.prefix_delegation | default(False) else "0" }}
+{%      endif %}
+{############################################}
+{# COMMANDS                                 #}
+{############################################}
+{%      for command in item.inet6.commands | default([]) %}
+    up {{ command }}
+{%      endfor %}
+{% endif %}

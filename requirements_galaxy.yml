@@ -1,0 +1,9 @@
+---
+
+- src: 'https://github.com/tristan-weil/ansible-role-pkg.git'
+  version: 'master'
+  scm: 'git'
+
+- src: 'https://github.com/tristan-weil/ansible-role-linux_kernel_module.git'
+  version: 'master'
+  scm: 'git'

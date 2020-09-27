@@ -1,0 +1,12 @@
+{% if network_dns_search | length > 0 %}
+search {{ network_dns_search | join(' ') }}
+{% endif %}
+{% for ns in  network_dns_inet_nameservers + network_dns_inet6_nameservers %}
+nameserver {{ ns }}
+{% endfor %}
+lookup file bind
+family inet6 inet4
+{% for o in network_dns_options %}
+options {{ o.option }}{% if o.value is defined %}:{{ o.value }}{% endif %}
+
+{% endfor %}

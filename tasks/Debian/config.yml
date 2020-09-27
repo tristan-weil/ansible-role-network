@@ -1,0 +1,59 @@
+---
+
+- name: 'list packages to install'
+  set_fact:
+    __network_pkgs: >-
+      {% set result = [] -%}
+      {% set dummy = result.append('ifenslave') -%}
+      {% set dummy = result.append('resolvconf') -%}
+      {% if network_vlan_interfaces | length > 0 -%}
+      {%    set dummy = result.append('vlan') -%}
+      {% endif -%}
+      {% if __network_uses_DHCP | default(False) | bool -%}
+      {%    set dummy = result.append('isc-dhcp-client') -%}
+      {% endif -%}
+      {{ result }}
+
+- include_role:
+    name: 'ansible-role-pkg'
+  vars:
+    pkg_list: "{{ __network_pkgs }}"
+
+- name: 'cleaning'
+  file:
+    path: '/etc/network/interfaces.d/50-cloud-init.cfg'
+    state: 'absent'
+
+- name: 'install the default config file'
+  copy:
+    src: 'Debian/etc/network/interfaces'
+    dest: '/etc/network/interfaces'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+
+- name: 'create the directory for interface config files'
+  file:
+    path: '/etc/network/interfaces.d'
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+
+- name: 'ensure ipv6 is enabled'
+  sysctl:
+    name: 'net.ipv6.conf.all.disable_ipv6'
+    value: '0'
+    sysctl_set: True
+    state: 'present'
+    reload: True
+  when: __network_uses_IPV6 | default(True) | bool
+
+- include_role:
+    name: 'ansible-role-linux_kernel_module'
+  vars:
+    kernel_modules:
+      - name: '8021q'
+        state: 'present'
+        params: {}
+  when: network_vlan_interfaces | length > 0

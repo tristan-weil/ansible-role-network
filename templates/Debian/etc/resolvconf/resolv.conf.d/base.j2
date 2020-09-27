@@ -1,0 +1,4 @@
+{% for o in network_dns_options %}
+options {{ o.option }}{% if o.value is defined %}:{{ o.value }}{% endif %}
+
+{% endfor %}

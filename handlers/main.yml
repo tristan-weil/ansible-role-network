@@ -1,0 +1,25 @@
+---
+
+- name: 'network_OpenBSD_restart_handler'
+  shell: |
+    sh /etc/netstart
+  async: 30
+  poll: 0
+  changed_when: False
+
+- name: 'network_Debian_restart_handler'
+  service:
+    name: 'networking'
+    state: 'restarted'
+  async: 30
+  poll: 0
+
+- name: 'network_restart_listener'
+  listen: 'network_restart_listener'
+  debug:
+    msg: 'noop'
+
+- name: 'network_reload_listener'
+  listen: 'network_reload_listener'
+  debug:
+    msg: 'noop'

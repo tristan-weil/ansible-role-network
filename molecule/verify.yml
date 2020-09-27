@@ -1,0 +1,3 @@
+---
+
+- import_playbook: "verify-{{ lookup('env', 'MOLECULE_PLAYBOOK_NAME') | default('static', true) }}.yml"

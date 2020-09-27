@@ -1,0 +1,19 @@
+---
+
+- name: 'update resolv.conf.tail'
+  template:
+    src: 'OpenBSD/etc/resolv.conf.tail.j2'
+    dest: '/etc/resolv.conf.tail'
+    owner: 'root'
+    group: 'wheel'
+    mode: '0644'
+  when: __network_uses_DHCP | default(False) | bool
+
+- name: 'update resolv.conf'
+  template:
+    src: 'OpenBSD/etc/resolv.conf.j2'
+    dest: '/etc/resolv.conf'
+    owner: 'root'
+    group: 'wheel'
+    mode: '0644'
+  when: not __network_uses_DHCP | default(False) | bool

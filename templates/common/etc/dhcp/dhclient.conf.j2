@@ -1,0 +1,133 @@
+{# ################################################################################################ #}
+{# When handling with options and values, there are some specific rules to follow with values:      #}
+{# Refer to:                                                                                        #}
+{# - https://kb.isc.org/docs/isc-dhcp-44-manual-pages-dhcp-options#REFERENCE:%20OPTION%20STATEMENTS #}
+{# - https://man.openbsd.org/dhcp-options.5                                                         #}
+{# !unsafe with proper double-quotes should probably help                                           #}
+{# ################################################################################################ #}
+{# ######################################## #}
+{# ##### MACROS ########################### #}
+{# ######################################## #}
+{% macro display_value(value) %}
+{%- if value.type | default("") == "unquoted" -%}
+{{ value }}
+{%- elif value.type | default("") == "quoted" -%}
+"{{ value }}"
+{% else -%}
+{%-      if value == 'true' or value == 'false' or value == 'on' or value == 'off' -%}
+{{ value }}
+{%-      elif value is number -%}
+{{ value }}
+{%-      elif value is string -%}
+{%-         if value | ipaddr -%}
+{{ value }}
+{%-         else -%}
+"{{ value }}"
+{%-         endif -%}
+{%-      elif value is iterable -%}
+{% for nvalue in value -%}{{ display_value(nvalue) }}{% if not loop.last %}, {% endif %}{% endfor %}
+{%-      else -%}
+"{{ value }}"
+{%-      endif -%}
+{%- endif -%}
+{% endmacro %}
+{# ######################################## #}
+{% macro display_list_one_per_line(action, list, offset=0) %}
+{% for item in list %}
+{{ ' ' * (2 * offset) }}{{ action }} {{ item }};
+{% endfor %}
+{% endmacro %}
+{# ######################################## #}
+{% macro display_list_one_line(action, list, offset=0) %}
+{% if list | length > 0 %}
+{{ ' ' * (2 * offset) }}{{ action }} {{ list | join(', ') }};
+{% endif -%}
+{% endmacro %}
+{# ######################################## #}
+{% macro display_kv_one_per_line(action, list, offset=0) %}
+{% for item in list %}
+{{ ' ' * (2 * offset) }}{{ action }} {{ item.option }} {{ display_value(item.value) }};
+{% endfor %}
+{% endmacro %}
+{# ######################################## #}
+{# ##### MAIN ############################# #}
+{# ######################################## #}
+##############################
+# global configuration
+##############################
+
+{% if ansible_facts['os_family'] == "OpenBSD" and __network_uses_ISC | default(False) | bool %}
+script "/usr/local/sbin/dhclient-script-t18s-fr";
+{% endif %}
+
+##############################
+# options
+##############################
+
+# new options
+{{ display_list_one_per_line('option', network_dhcp_options_definitions) }}
+
+# send
+{{ display_kv_one_per_line('send', network_dhcp_send_options) }}
+
+# request
+{{ display_list_one_line('request', network_dhcp_request_options) }}
+
+# require
+{{ display_list_one_line('require', network_dhcp_require_options) }}
+
+# default
+{{ display_kv_one_per_line('default', network_dhcp_default_options) }}
+
+# append
+{{ display_kv_one_per_line('append', network_dhcp_append_options) }}
+
+# prepend
+{{ display_kv_one_per_line('prepend', network_dhcp_prepend_options) }}
+
+# supersede
+{{ display_kv_one_per_line('supersede', __network_dhcp_supersede_options) }}
+
+{% if ansible_facts['os_family'] == "OpenBSD" and not __network_uses_ISC | default(False) | bool %}
+# ignore
+{{ display_list_one_line('ignore', network_dhcp_ignore_options) }}
+{% endif %}
+
+##############################
+# interfaces
+##############################
+
+{% for if in (network_ethernet_interfaces + network_vlan_interfaces) %}
+{%      for family in ['inet', 'inet6'] %}
+{%          if if[family] is defined and __network_uses_DHCP and if[family].options is defined and if[family].options.keys() | length > 0 %}
+interface "{{ if.device }}" {
+{%              if if[family].options.send is defined %}
+{{ display_kv_one_per_line('send', if[family].options.send, 1) }}
+{%              endif %}
+{%              if if[family].options.request is defined %}
+{{ display_list_one_line('request', if[family].options.request, 1) }}
+{%              endif %}
+{%              if if[family].options.require is defined %}
+{{ display_list_one_line('require', if[family].options.require, 1) }}
+{%              endif %}
+{%              if if[family].options.default is defined %}
+{{ display_kv_one_per_line('default', if[family].options.default, 1) }}
+{%              endif %}
+{%              if if[family].options.append is defined %}
+{{ display_kv_one_per_line('append', if[family].options.append, 1) }}
+{%              endif %}
+{%              if if[family].options.prepend is defined %}
+{{ display_kv_one_per_line('prepend', if[family].options.prepend, 1) }}
+{%              endif %}
+{%              if if[family].options.supersede is defined %}
+{{ display_kv_one_per_line('supersede', if[family].options.supersede, 1) }}
+{%              endif %}
+{%              if ansible_facts['os_family'] == "OpenBSD" and not __network_uses_ISC | default(False) | bool %}
+{%                  if if[family].options.ignore is defined %}
+{{ display_list_one_line('ignore', if[family].options.ignore, 1) }}
+{%                  endif %}
+{%              endif %}
+}
+{%          endif %}
+{%      endfor %}
+{% endfor %}

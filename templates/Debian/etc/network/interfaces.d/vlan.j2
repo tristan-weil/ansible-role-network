@@ -1,0 +1,38 @@
+{############################################}
+{# INTERFACE SELECTION                      #}
+{############################################}
+auto {{ item.device }}
+allow-hotplug {{ item.device }}
+
+iface {{ item.device }} inet {{ item.inet.type }}
+{############################################}
+{# STATIC                                   #}
+{############################################}
+{%      if item.inet.type == 'static' %}
+    address {{ item.inet.address }}/{{ item.inet.netmask | default(item.inet.prefixlen) }}
+    vlan-raw-device {{ item.parent }}
+{%          for opt in ['gateway'] if item.inet[opt] is defined %}
+    {{ _network_translations[opt] }} {{ item.inet[opt] }}
+{%          endfor %}
+{%          if item.options is defined %}
+{%              for opt in ['hwaddress', 'mtu'] if item.options[opt] is defined %}
+    {{ _network_translations[opt] }} {{ item.options[opt] }}
+{%              endfor %}
+{%          endif %}
+{%      endif %}
+{############################################}
+{# DHCP                                     #}
+{############################################}
+{%      if item.inet.type == 'dhcp' %}
+{%          if item.options is defined %}
+{%              for opt in ['hwaddress', 'mtu'] if item.options[opt] is defined %}
+    {{ _network_translations[opt] }} {{ item.options[opt] }}
+{%              endfor %}
+{%          endif %}
+{%      endif %}
+{############################################}
+{# COMMANDS                                 #}
+{############################################}
+{%      for command in item.inet.commands | default([]) %}
+    up {{ command }}
+{%      endfor %}

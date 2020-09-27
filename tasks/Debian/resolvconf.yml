@@ -1,0 +1,9 @@
+---
+
+- name: 'update resolvconf base file'
+  template:
+    src: 'Debian/etc/resolvconf/resolv.conf.d/base.j2'
+    dest: '/etc/resolvconf/resolv.conf.d/base'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'

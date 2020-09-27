@@ -1,0 +1,26 @@
+vnetid {{ item.device | regex_replace('vlan', '') }} parent {{ item.parent }}
+
+{############################################}
+{# STATIC                                   #}
+{############################################}
+{%      if item.inet.type == 'static' %}
+inet {{ item.inet.address }} {{ item.inet.netmask | default('') }} {{ item.inet.broadcast | default('') }}
+{%      endif %}
+{############################################}
+{# DHCP                                     #}
+{############################################}
+{%      if item.inet.type == 'dhcp' %}
+dhcp
+{%      endif %}
+{############################################}
+{# COMMANDS                                 #}
+{############################################}
+{%      for command in item.inet.commands | default([]) %}
+!{{ command }}
+{%      endfor %}
+{% endif %}
+
+{############################################}
+{# UP                                       #}
+{############################################}
+up

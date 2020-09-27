@@ -1,0 +1,8 @@
+{% for if in network_ethernet_interfaces %}
+{%      if if.inet is defined and if.inet.gateway is defined %}
+{{ if.inet.gateway }}
+{%      endif %}
+{%      if if.inet6 is defined and if.inet6.gateway is defined %}
+{{ if.inet6.gateway }}
+{%      endif %}
+{% endfor %}

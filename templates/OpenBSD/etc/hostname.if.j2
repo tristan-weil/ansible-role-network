@@ -1,0 +1,70 @@
+{############################################}
+{# GLOBAL                                   #}
+{############################################}
+{% if item.options is defined %}
+{%      for opt in ['hwaddress', 'mtu'] if item.options[opt] is defined %}
+{{ _network_translations[opt] }} {{ item.options[opt] }}
+{%      endfor %}
+{% endif %}
+
+{############################################}
+{# INET                                     #}
+{############################################}
+{% if item.inet is defined %}
+{############################################}
+{# STATIC                                   #}
+{############################################}
+{%      if item.inet.type == 'static' %}
+inet {{ item.inet.address }} {{ item.inet.netmask | default(item.inet.prefixlen) }} {{ item.inet.broadcast | default('') }}
+{%      endif %}
+{############################################}
+{# DHCP                                     #}
+{############################################}
+{%      if item.inet.type == 'dhcp' %}
+dhcp
+{%      endif %}
+{############################################}
+{# COMMANDS                                 #}
+{############################################}
+{%      for command in item.inet.commands | default([]) %}
+!{{ command }}
+{%      endfor %}
+{% endif %}
+
+{############################################}
+{# INET6                                    #}
+{############################################}
+{% if item.inet6 is defined %}
+{############################################}
+{# STATIC                                   #}
+{############################################}
+{%      if item.inet6.type == 'static' %}
+inet6 {{ item.inet6.address }} {{ item.inet6.netmask | default(item.inet6.prefixlen) }}
+{%      endif %}
+{############################################}
+{# AUTO                                     #}
+{############################################}
+{%      if item.inet6.type == 'auto' %}
+inet6 autoconf {{ _network_translations['autoconf_privacy_options'][item.inet6.autoconf.privacy | default("prefer")] }}
+{% if item.inet6.dhcp.enabled | default(False) %}!/usr/local/sbin/dhclient -6 {% if item.inet6.dhcp.prefix_delegation | default(False) %}-P{% else %}-S{% endif %} -cf /etc/isc-dhclient.conf -pf /var/run/isc-dhclient6-{{ item.device }}.pid {{ item.device }}{% endif %}
+
+{%      endif %}
+{############################################}
+{# DHCP                                     #}
+{############################################}
+{%      if item.inet6.type == 'dhcp' %}
+inet6
+!/usr/local/sbin/dhclient -6 {% if item.inet6.dhcp.prefix_delegation | default(False) %}-P -N{% endif %} -cf /etc/isc-dhclient.conf -pf /var/run/isc-dhclient6-{{ item.device }}.pid {{ item.device }}
+{%      endif %}
+{############################################}
+{# COMMANDS                                 #}
+{############################################}
+{%      for command in item.inet6.commands | default([]) %}
+!{{ command }}
+{%      endfor %}
+{% endif %}
+
+{############################################}
+{# UP                                       #}
+{############################################}
+up

@@ -1,0 +1,23 @@
+---
+
+- name: 'merge configurations'
+  set_fact:
+    __network_uses_IPV6: "{{ (network_ethernet_interfaces + network_vlan_interfaces) | json_query(\"[?inet6]\") | length > 0 }}"
+    __network_uses_DHCP: "{{ network_ethernet_interfaces | json_query(\"[?inet.type == 'dhcp' || inet6.type == 'auto' || inet6.type == 'dhcp' ]\") | length > 0 }}"
+    __network_uses_DHCP_IPV4: "{{ network_ethernet_interfaces | json_query(\"[?inet.type == 'dhcp' ]\") | length > 0 }}"
+    __network_uses_DHCP_IPV6: "{{ network_ethernet_interfaces | json_query(\"[?inet6.type == 'dhcp' ]\") | length > 0 }}"
+    __network_uses_ISC: "{{ (network_ethernet_interfaces + network_vlan_interfaces) | json_query(\"[?inet6.type=='dhcp' || inet6.dhcp]\") | length > 0 }}"
+    __network_dhcp_supersede_options: >-
+      {% set result = [] -%}
+      {% for o in network_dhcp_supersede_options -%}
+      {%    if network_dns_inet_nameservers | length > 0 and o.option == 'domain-name-servers' -%}
+      {% set dummy = result.append({'option': 'domain-name-servers', 'value': network_dns_inet_nameservers}) -%}
+      {%    elif network_dns_inet6_nameservers | length > 0 and o.option == 'dhcp6.name-servers' -%}
+      {% set dummy = result.append({'option': 'dhcp6.name-servers', 'value': network_dns_inet6_nameservers}) -%}
+      {%    elif network_dns_search | length > 0 and o.option == 'domain-name' -%}
+      {% set dummy = result.append({'option': 'domain-name', 'value': network_dns_search | first}) -%}
+      {%    elif network_dns_search | length > 0 and o.option == 'domain-search' -%}
+      {% set dummy = result.append({'option': 'domain-search', 'value': network_dns_search}) -%}
+      {%    endif -%}
+      {% endfor -%}
+      {{ result }}

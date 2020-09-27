@@ -1,0 +1,11 @@
+---
+
+- include_tasks: 'config.yml'
+
+- include_tasks: 'resolvconf.yml'
+
+- include_tasks: 'dhcp.yml'
+
+- include_tasks: 'device_delete.yml'
+
+- include_tasks: 'device_update.yml'

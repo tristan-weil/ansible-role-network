@@ -1,0 +1,28 @@
+---
+
+# NOTE concerning IPV6/DHCPv6 and SLAAC:
+# The package 'ifupdown' starts the following command
+#   sysctl -w net.ipv6.conf.eth0.accept_ra=n
+
+- block:
+    - name: 'update dhclient.conf'
+      template:
+        src: 'common/etc/dhcp/dhclient.conf.j2'
+        dest: '/etc/dhcp/dhclient.conf'
+        owner: 'root'
+        group: 'root'
+        mode: '0644'
+      notify:
+        - 'network_Debian_restart_handler'
+
+    - name: 'update ignored options hook file'
+      template:
+        src: 'common/etc/dhcp/dhclient-enter-hooks.d/000ignore-options.j2'
+        dest: '/etc/dhcp/dhclient-enter-hooks.d/000ignore-options'
+        owner: 'root'
+        group: 'root'
+        mode: '0644'
+      notify:
+        - 'network_Debian_restart_handler'
+
+  when: __network_uses_DHCP | default(False) | bool

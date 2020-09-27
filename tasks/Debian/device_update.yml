@@ -1,0 +1,98 @@
+---
+
+- name: 'update device (check file)'
+  stat:
+    path: "/etc/network/interfaces.d/ifcfg-{{ item.device }}"
+  when: item.state | default('present') == 'present'
+  loop: "{{ network_ethernet_interfaces + network_vlan_interfaces }}"
+  register: __network_ethernet_update_stat_result
+
+- name: 'update device (backup file)'
+  copy:
+    src: "/etc/network/interfaces.d/ifcfg-{{ item.item.device }}"
+    dest: "/etc/network/interfaces.d/BKP-ifcfg-{{ item.item.device }}"
+    remote_src: True
+    owner: 'root'
+    group: 'root'
+    mode: '0640'
+  changed_when: False
+  when: >
+    item.stat is defined
+    and item.stat.exists
+  loop: "{{ __network_ethernet_update_stat_result.results }}"
+
+- name: 'update devices (update ethernet config)'
+  template:
+    src: 'Debian/etc/network/interfaces.d/ethernet.j2'
+    dest: "/etc/network/interfaces.d/ifcfg-{{ item.device }}"
+    owner: 'root'
+    group: 'root'
+    mode: '0640'
+  when: item.state | default('present') == 'present'
+  loop: "{{ network_ethernet_interfaces }}"
+  register: __network_ethernet_update_ethernet_tpl_result
+  notify:
+    - 'network_reload_listener'
+    - 'network_restart_listener'
+
+- name: 'update devices (update vlan config)'
+  template:
+    src: 'Debian/etc/network/interfaces.d/vlan.j2'
+    dest: "/etc/network/interfaces.d/ifcfg-{{ item.device }}"
+    owner: 'root'
+    group: 'root'
+    mode: '0640'
+  when: item.state | default('present') == 'present'
+  loop: "{{ network_vlan_interfaces }}"
+  register: __network_ethernet_update_vlan_tpl_result
+  notify:
+    - 'network_reload_listener'
+    - 'network_restart_listener'
+
+- name: 'concat results'
+  set_fact:
+    __network_ethernet_update_tpl_results: "{{ __network_ethernet_update_ethernet_tpl_result.results + __network_ethernet_update_vlan_tpl_result.results }}"
+
+- name: 'update device (ifdown/ifup)'
+  shell: |
+    /usr/bin/mv /etc/network/interfaces.d/ifcfg-{{ item.device }} /etc/network/interfaces.d/NEW-ifcfg-{{ item.device }};
+    /usr/bin/mv /etc/network/interfaces.d/BKP-ifcfg-{{ item.device }} /etc/network/interfaces.d/ifcfg-{{ item.device }};
+    /sbin/ifdown {{ item.device }} || true;
+    /usr/bin/pkill -f "^/sbin/dhclient.*{{ item.device }}" || true;
+    /usr/bin/rm -rf /etc/resolvconf/run/interface/{{ item.device }}.dhclient;
+    /usr/bin/mv /etc/network/interfaces.d/NEW-ifcfg-{{ item.device }} /etc/network/interfaces.d/ifcfg-{{ item.device }};
+    /sbin/ifup {{ item.device }};
+  changed_when: False
+  ignore_errors: "{{ item.ignore_errors | default(False) }}"
+  async: 30
+  poll: 0
+  when: >
+    item.state | default('present') == 'present'
+    and __network_ethernet_update_stat_result.results | json_query("[?stat.exists].item[?device=='" + item.device + "']") | length > 0
+    and __network_ethernet_update_tpl_results | json_query("[?changed].item[?device=='" + item.device + "']") | length > 0
+  loop: "{{ network_ethernet_interfaces + network_vlan_interfaces }}"
+
+- name: 'update device (ifup)'
+  shell: |
+    /sbin/ifdown --force {{ item.device }} || true;
+    /usr/bin/pkill -f "^/sbin/dhclient.*{{ item.device }}" || true;
+    /usr/bin/rm -rf /etc/resolvconf/run/interface/{{ item.device }}.dhclient;
+    /sbin/ifup {{ item.device }};
+  changed_when: False
+  ignore_errors: "{{ item.ignore_errors | default(False) }}"
+  async: 30
+  poll: 0
+  when: >
+    item.state | default('present') == 'present'
+    and __network_ethernet_update_stat_result.results | json_query("[?stat.exists].item[?device=='" + item.device + "']") | length == 0
+    and __network_ethernet_update_tpl_results | json_query("[?changed].item[?device=='" + item.device + "']") | length > 0
+  loop: "{{ network_ethernet_interfaces + network_vlan_interfaces }}"
+
+- name: 'update device (check status ifdown/ifup)'
+  command: 'whoami'
+  register: __network_whoami_result
+  until: __network_whoami_result.rc == 0
+  changed_when: False
+  retries: 30
+  delay: 1
+  when: (network_ethernet_interfaces + network_vlan_interfaces) | length > 0

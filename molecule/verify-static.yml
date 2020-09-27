@@ -1,0 +1,17 @@
+---
+
+- hosts: all
+  name: 'Verify'
+  become: True
+  gather_facts: True
+  vars:
+    __verify_network_devices:
+      Debian: '/etc/network/interfaces.d/ifcfg-eth0'
+      OpenBSD: '/etc/hostname.em0'
+
+  tasks:
+    - name: 'Check content of network file'
+      slurp:
+        path: "{{ __verify_network_devices[ ansible_facts['os_family'] ] }}"
+      register: __verify_slurp
+      failed_when: not __verify_slurp.content | b64decode | regex_search('10.0.2.15')

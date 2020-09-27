@@ -1,0 +1,143 @@
+---
+
+##############################################################################
+# Variables
+##############################################################################
+_network_translations: "{{ _network_translations_by_os_family[ ansible_facts['os_family'] ] }}"
+
+_network_dhcp_default_send_options: "{{ _network_dhcp_default_send_options_by_os_family[ ansible_facts['os_family'] ] }}"
+_network_dhcp_default_request_options: "{{ _network_dhcp_default_request_options_by_os_family[ ansible_facts['os_family'] ] }}"
+_network_dhcp_default_require_options: "{{ _network_dhcp_default_require_options_by_os_family[ ansible_facts['os_family'] ] }}"
+_network_dhcp_default_default_options: "{{ _network_dhcp_default_default_options_by_os_family[ ansible_facts['os_family'] ] }}"
+_network_dhcp_default_append_options: "{{ _network_dhcp_default_append_options_by_os_family[ ansible_facts['os_family'] ] }}"
+_network_dhcp_default_prepend_options: "{{ _network_dhcp_default_prepend_options_by_os_family[ ansible_facts['os_family'] ] }}"
+_network_dhcp_default_supersede_options: "{{ _network_dhcp_default_supersede_options_by_os_family[ ansible_facts['os_family'] ] }}"
+_network_dhcp_default_ignore_options: "{{ _network_dhcp_default_ignore_options_by_os_family[ ansible_facts['os_family'] ] }}"
+
+_network_dhcp_default_options_definitions: "{{ _network_dhcp_default_options_definitions_by_os_family[ ansible_facts['os_family'] ] }}"
+
+##############################################################################
+# Distributions' dictionaries
+##############################################################################
+
+# When handling with options and values, there are some specific rules to follow with values:
+# Refer to:
+# - https://kb.isc.org/docs/isc-dhcp-44-manual-pages-dhcp-options#REFERENCE:%20OPTION%20STATEMENTS
+# - https://man.openbsd.org/dhcp-options.5
+# !unsafe with proper double-quotes should probably help
+
+_network_dhcp_default_send_options_by_os_family:
+  Debian:
+    - option: 'host-name'
+      value: "gethostname()"
+  OpenBSD: []
+
+_network_dhcp_default_request_options_by_os_family:
+  Debian:
+    - 'subnet-mask'
+    - 'broadcast-address'
+    - 'time-offset'
+    - 'routers'
+    - 'domain-name'
+    - 'domain-name-servers'
+    - 'domain-search'
+    - 'host-name'
+    - 'dhcp6.name-servers'
+    - 'dhcp6.domain-search'
+    - 'dhcp6.fqdn'
+    - 'dhcp6.sntp-servers'
+    - 'netbios-name-servers'
+    - 'netbios-scope'
+    - 'interface-mtu'
+    - 'rfc3442-classless-static-routes'
+    - 'ntp-servers'
+
+  OpenBSD:
+    - 'bootfile-name'
+    - 'broadcast-address'
+    - 'classless-static-routes'
+    - 'host-name'
+    - 'domain-name'
+    - 'domain-name-servers'
+    - 'domain-search'
+    - 'routers'
+    - 'subnet-mask'
+    - 'tftp-server-name'
+    - 'time-offset'
+
+_network_dhcp_default_require_options_by_os_family:
+  Debian: []
+  OpenBSD:
+    - 'subnet-mask'
+
+_network_dhcp_default_default_options_by_os_family:
+  Debian: []
+  OpenBSD: []
+
+_network_dhcp_default_append_options_by_os_family:
+  Debian: []
+  OpenBSD: []
+
+_network_dhcp_default_prepend_options_by_os_family:
+  Debian: []
+  OpenBSD: []
+
+_network_dhcp_default_supersede_options_by_os_family:
+  Debian: []
+  OpenBSD: []
+
+_network_dhcp_default_ignore_options_by_os_family:
+  Debian: []
+  OpenBSD: []
+
+_network_dhcp_default_options_definitions_by_os_family:
+  Debian:
+    - "rfc3442-classless-static-routes code 121 = array of unsigned integer 8"
+  OpenBSD: []
+
+_network_translations_by_os_family:
+  Debian:
+    netmask: 'netmask'
+    broadcast: 'broadcast'
+    metric: 'metric'
+    gateway: 'gateway'
+    hwaddress: 'hwaddress'
+    mtu: 'mtu'
+    accept_ra: 'accept_ra'
+    dhcp: 'dhcp'
+    request_prefix: 'request_prefix'
+    auto: 'auto'
+    static: 'static'
+    autoconf: 'autoconf'
+    autoconf_privacy_options:
+      "off": 'off'
+      assign: 'assign'
+      prefer: 'prefer'
+    ra_options:
+      "off": '0'
+      "on": '1'
+      forwarding: '2'
+    preferred-lifetime: 'preferred-lifetime'
+
+  OpenBSD:
+    netmask: 'netmask'
+    broadcast: 'broadcast'
+    metric: 'metric'
+    gateway: 'gateway'
+    hwaddress: 'lladdr'
+    mtu: 'mtu'
+    accept_ra: 'accept_ra'
+    dhcp: 'dhcp'
+    request_prefix: 'request_prefix'
+    auto: 'autoconf'
+    static: 'static'
+    autoconf: 'autoconf'
+    autoconf_privacy_options:
+      "off": "-autoconfprivacy"
+      assign: 'autoconfprivacy'
+      prefer: 'autoconfprivacy'
+    ra_options:
+      "off": '0'
+      "on": '0'
+      forwarding: '2'
+    preferred-lifetime: 'pltime'
